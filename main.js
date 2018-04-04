@@ -1,6 +1,25 @@
 var subito = require("./subito_scraper.js");
 
-subito.start();
+const nconf = require('nconf');
+nconf.file("config.json");
+
+const researches = {};
+
+const res_tmp = nconf.get("researches");
+for (let k in res_tmp) {
+  for (let i = 0; i < res_tmp[k].length; ++i) {
+    if (!res_tmp[k][i].id) {
+      throw new Error("problema configurazione!!!");
+    }
+
+    researches[res_tmp[k][i].id] = res_tmp[k][i];
+    researches[res_tmp[k][i].id].recipient = k;
+  }
+}
+
+subito.start(researches);
  setInterval(function () {
-   subito.start();
+   subito.start(researches);
  }, 1000 * 60  * 60);
+
+

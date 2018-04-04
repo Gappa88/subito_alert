@@ -4,8 +4,8 @@ const now = new Date().getTime();
 
 const rp = require('request-promise');
 const cheerio = require('cheerio');
-const nconf = require('nconf');
-nconf.file("config.json");
+// const nconf = require('nconf');
+// nconf.file("config.json");
 const sqlite3 = require('sqlite3').verbose();
 const url_parser = require('url');
 const mail = require('./send_mail.js')
@@ -32,21 +32,24 @@ const log = createLogger({
 
 const promiseUntil = require('promise-until');
 
-var researches = {};
-const res_tmp = nconf.get("researches");
-for (let i = 0; i < res_tmp.length; ++i) {
-    if (!res_tmp[i].id)
-        throw new Error("problema configurazione!!!");
+var researches = null;
+// const res_tmp = nconf.get("researches");
+// for (let i = 0; i < res_tmp.length; ++i) {
+//     if (!res_tmp[i].id)
+//         throw new Error("problema configurazione!!!");
 
-    researches[res_tmp[i].id] = res_tmp[i];
-}
+//     researches[res_tmp[i].id] = res_tmp[i];
+// }
 
 var all_insertions_inserted = {};
 var all_insertions_updated = {};
 
 var db = null;
 
-module.exports.start = function () {
+module.exports.start = function (researchers_list) {
+
+    researches = Object.assign({}, researchers_list);
+
     init().then(() => {
         return main();
     }).catch(err => {
@@ -68,64 +71,103 @@ module.exports.start = function () {
 
 function print_report() {
 
-    //let body_mail = "";
-    //log.info("Nuove Inserzioni " + all_insertions_inserted.length + ":");
-    // for (let i in all_insertions_inserted) {
-    //     //body_mail += "\n" + JSON.stringify(all_insertions_inserted[i]);
-    //     log.info(JSON.stringify(all_insertions_inserted[i]));
-    // }
-
-    //log.info("Inserzioni Modificate " + all_insertions_updated.length + ":");
-    // for (let i in all_insertions_updated) {
-    //     //body_mail += "\n" + JSON.stringify(all_insertions_updated[i]);
-    //     log.info(JSON.stringify(all_insertions_updated[i]));
-    // }
-
-    let inserts = "";
+    let inserts = {};
     for (let i in all_insertions_inserted) {
         for (let k = 0; k < all_insertions_inserted[i].length; ++k) {
+
+            let sub_insert = "";
+            let recipient = "";
+
             for (let l in all_insertions_inserted[i][k]) {
                 if (l == 'id_research') {
-                    inserts += "<tr><td>" + l + "</td>";
-                    inserts += "<td>" + researches[all_insertions_inserted[i][k][l]].name + "</td></tr>";
+
+                    // if (!inserts[researches[all_insertions_inserted[i][k][l]]]) {
+                    //     inserts[researches[all_insertions_inserted[i][k][l]]] = "";
+                    // }
+                    recipient = researches[all_insertions_inserted[i][k][l]].recipient;
+
+                    sub_insert += "<tr style='background-color:yellow;'><td>" + l + "</td>";
+                    sub_insert += "<td>" + researches[all_insertions_inserted[i][k][l]].name + "</td></tr>";
                 } else {
-                    inserts += "<tr><td>" + l + "</td>";
-                    inserts += "<td>" + all_insertions_inserted[i][k][l] + "</td></tr>";
+                    sub_insert += "<tr><td>" + l + "</td>";
+                    sub_insert += "<td>" + all_insertions_inserted[i][k][l] + "</td></tr>";
                 }
             }
+            inserts[recipient] = sub_insert;
         }
     }
 
-    let updates = "";
+    let updates = {};
     for (let i in all_insertions_updated) {
         for (let k = 0; k < all_insertions_updated[i].length; ++k) {
-            for (let l in all_insertions_inserted[i][k]) {
+
+            let sub_updates = "";
+            let recipient = "";
+
+            for (let l in all_insertions_updated[i][k]) {
                 if (l == 'id_research') {
-                    updates += "<tr><td>" + l + "</td>";
-                    updates += "<td>" + researches[all_insertions_updated[i][k][l]].name + "</td></tr>";
+
+                    // if (!updates[researches[all_insertions_updated[i][k][l]]]) {
+                    //     updates[researches[all_insertions_updated[i][k][l]]] = "";
+                    // }
+                    recipient = researches[all_insertions_updated[i][k][l]].recipient;
+
+                    sub_updates += "<tr style='background-color:yellow;'><td>" + l + "</td>";
+                    sub_updates += "<td>" + researches[all_insertions_updated[i][k][l]].name + "</td></tr>";
                 } else {
-                    updates += "<tr><td>" + l + "</td>";
-                    updates += "<td>" + all_insertions_updated[i][k][l] + "</td></tr>";
+                    sub_updates += "<tr><td>" + l + "</td>";
+                    sub_updates += "<td>" + all_insertions_updated[i][k][l] + "</td></tr>";
                 }
             }
+            updates[recipient] = sub_updates;
         }
     }
 
-    if (inserts || updates) {
+    if (Object.keys(inserts).length > 0 || Object.keys(updates).length > 0) {
 
-        let table = "<table style='border: 1px solid black' border='1'>";
-        table += "<tr><th colspan='2'>Nuovi Inserimenti:</th>";
-        table += inserts;
-        table += "<tr><th colspan='2'>Aggiornamenti:</th>";
-        table += updates;
-        table += "</table>";
+        let tables = {};
+        for (let k in inserts) {
 
-        mail.send_mail('gappa88@gmail.com', 'report', "", table).then(ret => {
-            log.info("mail inviata");
-        }).catch(err => {
-            console.error(err);
-            log.error("errore invio email: " + JSON.stringify(err));
-        });
+            if (!tables[k]) {
+                tables[k] = { inserts: "" };
+            }
+            if (!tables[k].inserts) {
+                tables[k].inserts = "";
+            }
+
+            tables[k].inserts += "<table style='border: 1px solid black' border='1'>";
+            tables[k].inserts += "<tr><th colspan='2'>Nuovi Inserimenti:</th>";
+            tables[k].inserts += inserts[k];
+            tables[k].inserts += "</table>";
+        }
+
+        for (let k in updates) {
+
+            if (!tables[k]) {
+                tables[k] = { updates: "" };
+            }
+            if (!tables[k].updates) {
+                tables[k].updates = "";
+            }
+
+            tables[k].updates += "<table style='border: 1px solid black' border='1'>";
+            tables[k].updates += "<tr><th colspan='2'>Aggiornamenti:</th>";
+            tables[k].updates += updates[k];
+            tables[k].updates += "</table>";
+        }
+
+        for (let k in tables) {
+
+            let report = (tables[k].inserts || "") + "<br />" + (tables[k].updates || "");
+
+            mail.send_mail(k, 'report', "", report).then(ret => {
+                log.info("mail inviata");
+            }).catch(err => {
+                console.error(err);
+                log.error("errore invio email: " + JSON.stringify(err));
+            });
+
+        }
     }
 
     for (let k in all_insertions_inserted) {
