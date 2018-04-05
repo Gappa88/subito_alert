@@ -6,7 +6,7 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 module.exports.send_mail = function (to, subject, body, html) {
     const msg = {
         to: to,
-        from: 'report@repo.it',
+        from: 'report@myscraper.it',
         subject: subject,
         text: "boo",
         html: html,

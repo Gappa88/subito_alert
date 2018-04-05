@@ -93,7 +93,11 @@ function print_report() {
                     sub_insert += "<td>" + all_insertions_inserted[i][k][l] + "</td></tr>";
                 }
             }
-            inserts[recipient] = sub_insert;
+            
+            if(!inserts[recipient]){
+                inserts[recipient] = "";
+            }
+            inserts[recipient] += sub_insert;
         }
     }
 
@@ -119,7 +123,11 @@ function print_report() {
                     sub_updates += "<td>" + all_insertions_updated[i][k][l] + "</td></tr>";
                 }
             }
-            updates[recipient] = sub_updates;
+
+            if(!updates[recipient]){
+                updates[recipient] = "";
+            }
+            updates[recipient] += sub_updates;
         }
     }
 
@@ -160,6 +168,7 @@ function print_report() {
 
             let report = (tables[k].inserts || "") + "<br />" + (tables[k].updates || "");
 
+            log.info("invio email a: " + k);
             mail.send_mail(k, 'report', "", report).then(ret => {
                 log.info("mail inviata");
             }).catch(err => {
@@ -256,7 +265,7 @@ function main() {
                         return get_number_of_rows_inserted();
 
                     }).then(n => {
-                        log.info("numero inseriti: " + n[0].changes);
+                        log.info("numero modifiche: " + n[0].changes);
                         return resolve();
                     }).catch(err => {
                         return reject();

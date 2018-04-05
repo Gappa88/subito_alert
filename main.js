@@ -17,9 +17,11 @@ for (let k in res_tmp) {
   }
 }
 
+const insertions_interval_checker_seconds = nconf.get("insertions_interval_checker_seconds");
+
 subito.start(researches);
  setInterval(function () {
    subito.start(researches);
- }, 1000 * 60  * 60);
+ }, 1000 * insertions_interval_checker_seconds);
 
 
