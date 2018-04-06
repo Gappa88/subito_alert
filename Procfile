@@ -1,1 +1,1 @@
-worker: node main.js
+web: node main_stop.js
