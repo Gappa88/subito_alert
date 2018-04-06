@@ -1,7 +1,8 @@
 // using SendGrid's v3 Node.js Library
 // https://github.com/sendgrid/sendgrid-nodejs
 const sgMail = require('@sendgrid/mail');
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+//sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+sgMail.setApiKey('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');
 
 module.exports.send_mail = function (to, subject, body, html) {
     const msg = {
