@@ -1,1 +1,1 @@
-web: node main_stop.js
+web: node main.js
