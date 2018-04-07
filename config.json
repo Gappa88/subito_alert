@@ -1,7 +1,7 @@
 {
     "insertions_interval_checker_seconds": 3600,
     "researches": {
-        "gappa88@gmail.com": [
+        "email1": [
             {
                 "id": 1,
                 "name": "pignone",
@@ -13,7 +13,7 @@
                 "url": "https://www.subito.it/annunci-emilia-romagna/vendita/immobili/reggio-emilia/?q=villa"
             }
         ],
-        "marco.gasparini@gmx.com": [
+        "email2": [
             {
                 "id": 3,
                 "url": "https://www.subito.it/annunci-emilia-romagna/vendita/telefonia/modena/?q=iphone&qso=true",
