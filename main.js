@@ -19,15 +19,18 @@ for (let k in res_tmp) {
 
 const insertions_interval_checker_seconds = nconf.get("insertions_interval_checker_seconds");
 
-subito.start(researches);
- setInterval(function () {
-   subito.start(researches);
- }, 1000 * insertions_interval_checker_seconds);
-
-
  var express = require('express');
  var app = express();
  var port = process.env.PORT || 8080;
  app.listen(port, function() {
   console.log('Our app is running on http://localhost:' + port);
 });
+
+setInterval(function () {
+  console.log("alive");
+}, 30000);
+
+subito.start(researches);
+ setInterval(function () {
+   subito.start(researches);
+ }, 1000 * insertions_interval_checker_seconds);
