@@ -19,18 +19,49 @@ for (let k in res_tmp) {
 
 const insertions_interval_checker_seconds = nconf.get("insertions_interval_checker_seconds");
 
- var express = require('express');
- var app = express();
- var port = process.env.PORT || 8080;
- app.listen(port, function() {
+var express = require('express');
+var app = express();
+var port = process.env.PORT || 8080;
+
+app.listen(port, function () {
   console.log('Our app is running on http://localhost:' + port);
 });
 
-setInterval(function () {
-  console.log("alive");
-}, 30000);
+app.listen("/", function () {
+  console.log('Our app is running on http://localhost:' + port);
+});
+
+
+
+var http = require('http'); //importing http
+
+function startKeepAlive() {
+  setInterval(function () {
+    var options = {
+      host: 'your_app_name.herokuapp.com',
+      port: 80,
+      path: '/'
+    };
+    http.get(options, function (res) {
+      res.on('data', function (chunk) {
+        try {
+          // optional logging... disable after it's working
+          console.log("HEROKU RESPONSE: " + chunk);
+        } catch (err) {
+          console.log(err.message);
+        }
+      });
+    }).on('error', function (err) {
+      console.log("Error: " + err.message);
+    });
+  }, 20 * 60 * 1000); // load every 20 minutes
+}
+
+startKeepAlive();
+
+
 
 subito.start(researches);
- setInterval(function () {
-   subito.start(researches);
- }, 1000 * insertions_interval_checker_seconds);
+setInterval(function () {
+  subito.start(researches);
+}, 1000 * insertions_interval_checker_seconds);
