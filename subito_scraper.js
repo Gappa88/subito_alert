@@ -340,12 +340,10 @@ function crawl(opt) {
                 }
 
                 if (!stored_insertions || !stored_insertions.length) {
-
                     all_insertions_inserted[opt.research_id].push(ins_obj);
                     promise_array.push(db_manager.insert_insertion_or_update(ins_obj));
 
                 } else {
-
                     let insert = null;
                     // super velocità ???
                     let j = 0; const iMax = stored_insertions.length;
