@@ -6,7 +6,6 @@ const rp = require('request-promise');
 const cheerio = require('cheerio');
 
 const db_manager = require("./db_manager");
-//const sqlite3 = require('sqlite3').verbose();
 const url_parser = require('url');
 const mail = require('./send_mail.js')
 
@@ -33,17 +32,8 @@ const log = createLogger({
 const promiseUntil = require('promise-until');
 
 var researches = null;
-// const res_tmp = nconf.get("researches");
-// for (let i = 0; i < res_tmp.length; ++i) {
-//     if (!res_tmp[i].id)
-//         throw new Error("problema configurazione!!!");
-
-//     researches[res_tmp[i].id] = res_tmp[i];
-// }
-
 var all_insertions_inserted = {};
 var all_insertions_updated = {};
-
 
 module.exports.start = function (researchers_list) {
 
@@ -60,8 +50,7 @@ module.exports.start = function (researchers_list) {
     }).then(() => {
 
         print_report();
-
-        console.log("Fine");
+        
         log.info("Fine");
 
     }).catch(err => {
@@ -263,10 +252,8 @@ function main() {
 
             return Promise.all(options.map(crawl));
 
-        }).then(function (ret) {
-
-            return get_number_of_rows_inserted();
-
+        // }).then(ret => {
+        //     return get_number_of_rows_inserted();
         }).then(n => {
             //log.info("numero modifiche: " + n[0].changes);
             return;
@@ -457,19 +444,19 @@ function crawl(opt) {
 //     });
 // }
 
-function get_number_of_rows_inserted() {
-    return Promise.resolve(55);
+// function get_number_of_rows_inserted() {
+//     return Promise.resolve(55);
 
 
-    return new Promise((resolve, reject) => {
-        db.all("select total_changes() as changes", (err, rows) => {
-            if (err) {
-                return reject(err);
-            }
-            return resolve(rows);
-        });
-    });
-}
+//     return new Promise((resolve, reject) => {
+//         db.all("select total_changes() as changes", (err, rows) => {
+//             if (err) {
+//                 return reject(err);
+//             }
+//             return resolve(rows);
+//         });
+//     });
+// }
 
 
 
