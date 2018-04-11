@@ -4,9 +4,9 @@ const now = new Date().getTime();
 
 const rp = require('request-promise');
 const cheerio = require('cheerio');
-// const nconf = require('nconf');
-// nconf.file("config.json");
-const sqlite3 = require('sqlite3').verbose();
+
+const db_manager = require("./db_manager");
+//const sqlite3 = require('sqlite3').verbose();
 const url_parser = require('url');
 const mail = require('./send_mail.js')
 
@@ -44,7 +44,6 @@ var researches = null;
 var all_insertions_inserted = {};
 var all_insertions_updated = {};
 
-var db = null;
 
 module.exports.start = function (researchers_list) {
 
@@ -55,9 +54,10 @@ module.exports.start = function (researchers_list) {
     }).catch(err => {
         log.error(err);
     }).then(() => {
-        if (db) {
-            db.close();
-        }
+
+        return db_manager.close();
+
+    }).then(() => {
 
         print_report();
 
@@ -93,8 +93,8 @@ function print_report() {
                     sub_insert += "<td>" + all_insertions_inserted[i][k][l] + "</td></tr>";
                 }
             }
-            
-            if(!inserts[recipient]){
+
+            if (!inserts[recipient]) {
                 inserts[recipient] = "";
             }
             inserts[recipient] += sub_insert;
@@ -124,7 +124,7 @@ function print_report() {
                 }
             }
 
-            if(!updates[recipient]){
+            if (!updates[recipient]) {
                 updates[recipient] = "";
             }
             updates[recipient] += sub_updates;
@@ -203,177 +203,76 @@ function print_report() {
 
 //******************************************* */
 // controllo presenza tabelle
-function init() {
-    return new Promise((resolve, reject) => {
-        db = new sqlite3.Database('./urls.db', (err) => {
-            if (err) {
-                log.error(err.message);
-                throw err;
-            }
-            console.log('Connected to the urls database.');
+// function init() {
+//     return new Promise((resolve, reject) => {
+//         db = new sqlite3.Database('./urls.db', (err) => {
+//             if (err) {
+//                 log.error(err.message);
+//                 throw err;
+//             }
+//             console.log('Connected to the urls database.');
 
-            create_table_insertions()
-                // .then(() => {
-                //   return create_table_researches();
-                // })
-                .then(() => {
-                    resolve();
-                }).catch((err) => {
-                    reject(err);
-                });
-        });
-    });
+//             create_table_insertions()
+//                 // .then(() => {
+//                 //   return create_table_researches();
+//                 // })
+//                 .then(() => {
+//                     resolve();
+//                 }).catch((err) => {
+//                     reject(err);
+//                 });
+//         });
+//     });
+// }
+
+async function init() {
+    await db_manager.create_db();
+    return db_manager.create_table_insertions();
 }
+
 //******************************************* */
 
 function main() {
-    return new Promise((resolve, reject) => {
-        // TODO: mettere paginazione con controlli
-        var options = [];
-        //for (let i = 0; i < researches.length; ++i) {
-        for (let i in researches) {
-            options.push({
-                research_id: i,
-                uri: researches[i].url,
-                transform: function (body) {
-                    return cheerio.load(body);
-                }
-            });
-        }
+    //return new Promise((resolve, reject) => {
+    // TODO: mettere paginazione con controlli
+    let options = [];
+    for (let i in researches) {
+        options.push({
+            research_id: i,
+            uri: researches[i].url,
+            transform: function (body) {
+                return cheerio.load(body);
+            }
+        });
+    }
 
-        Promise.all(options.map(o => { return rp(o); }))
-            .then(pages => {
+    return Promise.all(options.map(o => { return rp(o); }))
+        .then(pages => {
+            for (let i = 0; i < pages.length; ++i) {
+                options[i].max_page_number = 1;
+                let $ = pages[i];
 
-                for (let i = 0; i < pages.length; ++i) {
-
-                    options[i].max_page_number = 1;
-
-                    let $ = pages[i];
-
-                    let url = $("div.pagination_bottom_link").find("a").attr("href");
-                    if (url) {
-                        let url_parts = url_parser.parse(url, true);
-                        if (url_parts.query.o) {
-                            options[i].max_page_number = parseInt(url_parts.query.o);
-                        }
+                let url = $("div.pagination_bottom_link").find("a").attr("href");
+                if (url) {
+                    let url_parts = url_parser.parse(url, true);
+                    if (url_parts.query.o) {
+                        options[i].max_page_number = parseInt(url_parts.query.o);
                     }
                 }
+            }
 
-                Promise.all(options.map(crawl))
-                    .then(function (ret) {
+            return Promise.all(options.map(crawl));
 
-                        return get_number_of_rows_inserted();
+        }).then(function (ret) {
 
-                    }).then(n => {
-                        log.info("numero modifiche: " + n[0].changes);
-                        return resolve();
-                    }).catch(err => {
-                        return reject();
-                    });
+            return get_number_of_rows_inserted();
 
-                /*
-                    // richiesta al link delle ricerche per ottenere la pagina delle inserzioni principale
-                    Promise.all(options.map(o => { return rp(o); }))
-                      .then(function (ret) {
-                
-                        // ottengo il nuemro di inserzioni totale.
-                        let promise_array = [];
-                        for (let i = 0; i < ret.length; ++i) {
-                          let $ = ret[i];
-                          let text = $("#advertiser_type_dropdown_button").text();
-                          let n_adv = text.match(/\d+/);
-                          if (n_adv.length > 0) {
-                            n_insertions.push(n_adv[0]);
-                          } else {
-                            n_insertions.push(0);
-                          }
-                          insertions.push(ret[i]);
-                
-                          // ottenfo dal db la lista delle inserzioni salvate in precedenza
-                          promise_array.push(get_insertions_by_research_id(researches[i].id));
-                        }
-                
-                        return Promise.all(promise_array);
-                
-                      }).then(stored_insertions => {
-                
-                        let promise_array = [];
-                        for (let i = 0; i < insertions.length; ++i) {
-                
-                          // devo ciclare la pagina, inserire le inserzioni nuove e modificare quelle già esistenti
-                          let $ = insertions[i];
-                          let new_ins_list = $("article.item_list.view_listing");
-                
-                          // leggo tutte le inserzioni della pagina, estraggo le informazioni e le confronto con le precedenti
-                          // per verificare che siano uguali. Se differiscono aggiorno.
-                          new_ins_list.map((idx, v) => {
-                            let $ = cheerio.load(v);
-                            let data_id = $("article.item_list.view_listing").attr("data-id");
-                            let a = $("div.item_list_section.item_description").find("a");
-                            let url = a.attr("href");
-                            let description = a.text().trim();
-                            let price = $("div.item_list_section.item_description").find("span.item_price").text().trim();
-                            let location = $("span.item_info.item_info_motori").find("span.item_location").text().trim();
-                            let extras = $("div.item_extra_data").find("li");
-                            let extras_values = [];
-                            for (let j = 0; j < extras.length; ++j) {
-                              let val = $(extras[j]).text().trim();
-                              if (val)
-                                extras_values.push(val);
-                            }
-                
-                            let ins_obj = {
-                              id_research: researches[i].id,
-                              data_id: data_id,
-                              url: url,
-                              description: description,
-                              price: price,
-                              location: location,
-                              extras: JSON.stringify(extras_values)
-                            };
-                
-                            if (!stored_insertions[i] || !stored_insertions[i].length) {
-                              promise_array.push(insert_insertion_or_update(ins_obj));
-                
-                            } else {
-                
-                              // super velocità ???
-                              let j = 0; const iMax = stored_insertions[i].length;
-                              for (; j < iMax; j++) {
-                
-                                if (stored_insertions[i][j].data_id == data_id && (
-                                  stored_insertions[i][j].url != url ||
-                                  stored_insertions[i][j].description != description ||
-                                  stored_insertions[i][j].price != price ||
-                                  stored_insertions[i][j].location != location
-                                )) {
-                                  console.log(stored_insertions[i][j]);
-                                  promise_array.push(insert_insertion_or_update(ins_obj));
-                                  break;
-                                }
-                
-                              }
-                            }
-                          });
-                        }
-                        return Promise.all(promise_array);
-                      }).then(ret => {
-                
-                        return get_number_of_rows_inserted();
-                
-                      }).then(n => {
-                
-                        console.log("numero inseriti: " + n[0].inserted);        
-                
-                        return resolve();
-                
-                      }).catch(function (err) {
-                        console.error(err);
-                        return reject(err);
-                      });
-                */
-            });
-    });
+        }).then(n => {
+            //log.info("numero modifiche: " + n[0].changes);
+            return;
+        }).catch(err => {
+            throw err;
+        });
 }
 
 function crawl(opt) {
@@ -406,7 +305,7 @@ function crawl(opt) {
             this_insertion = $;
 
             // ottenfo dal db la lista delle inserzioni salvate in precedenza
-            return get_insertions_by_research_id(researches[opt.research_id].id);
+            return db_manager.get_insertions_by_research_id(researches[opt.research_id].id);
 
         }).then(stored_insertions => {
 
@@ -441,7 +340,8 @@ function crawl(opt) {
                     description: description,
                     price: price,
                     location: location,
-                    extras: JSON.stringify(extras_values)
+                    extras: JSON.stringify(extras_values),
+                    updated_at: now
                 };
 
                 if (!all_insertions_inserted[opt.research_id]) {
@@ -455,7 +355,7 @@ function crawl(opt) {
                 if (!stored_insertions || !stored_insertions.length) {
 
                     all_insertions_inserted[opt.research_id].push(ins_obj);
-                    promise_array.push(insert_insertion_or_update(ins_obj));
+                    promise_array.push(db_manager.insert_insertion_or_update(ins_obj));
 
                 } else {
 
@@ -472,7 +372,7 @@ function crawl(opt) {
                     if (!insert) {
 
                         all_insertions_inserted[opt.research_id].push(ins_obj);
-                        promise_array.push(insert_insertion_or_update(ins_obj));
+                        promise_array.push(db_manager.insert_insertion_or_update(ins_obj));
 
                     } else if (insert && (
                         insert.url != url ||
@@ -481,7 +381,7 @@ function crawl(opt) {
                         insert.location != location
                     )) {
                         all_insertions_updated[opt.research_id].push(ins_obj);
-                        promise_array.push(insert_insertion_or_update(ins_obj));
+                        promise_array.push(db_manager.insert_insertion_or_update(ins_obj));
                     }
                 }
             });
@@ -494,70 +394,73 @@ function crawl(opt) {
 
         }).catch(function (err) {
             log.error(err);
-            return reject(err);
+            throw err;
         });
     });
 }
 
-function get_insertions_by_research_id(id) {
-    return new Promise((resolve, reject) => {
-        let sql_urls = `select * from insertions
-    where id_research = ` + id;
+// function get_insertions_by_research_id(id) {
+//     return new Promise((resolve, reject) => {
+//         let sql_urls = `select * from insertions
+//     where id_research = ` + id;
 
-        db.all(sql_urls, [], (err, rows) => {
-            if (err) {
-                return reject(err);
-            }
-            return resolve(rows);
-        });
-    });
-}
+//         db.all(sql_urls, [], (err, rows) => {
+//             if (err) {
+//                 return reject(err);
+//             }
+//             return resolve(rows);
+//         });
+//     });
+// }
 
-function insert_insertion_or_update(ins_obj) {
-    return new Promise((resolve, reject) => {
-        // let ins_obj = {
-        //   id_research: researches[i],
-        //   data_id: data_id,
-        //   url: url,
-        //   description: description,
-        //   price: price,
-        //   location: location,
-        //   extras: JSON.stringify(extras_values)
-        // };
+// function insert_insertion_or_update(ins_obj) {
+//     return new Promise((resolve, reject) => {
+//         // let ins_obj = {
+//         //   id_research: researches[i],
+//         //   data_id: data_id,
+//         //   url: url,
+//         //   description: description,
+//         //   price: price,
+//         //   location: location,
+//         //   extras: JSON.stringify(extras_values)
+//         // };
 
-        //db.serialize(function () {
-        let sql_urls = `INSERT OR REPLACE into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
-    values(?,?,?,?,?,?,?,?)`;
+//         //db.serialize(function () {
+//         let sql_urls = `INSERT OR REPLACE into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
+//     values(?,?,?,?,?,?,?,?)`;
 
-        db.run(sql_urls, [
-            ins_obj.id_research,
-            ins_obj.data_id,
-            ins_obj.url,
-            ins_obj.description,
-            ins_obj.price,
-            ins_obj.location,
-            ins_obj.extras,
-            now
-        ], (err, rows, bo) => {
-            if (err) {
-                return resolve(err);
-            }
-            return resolve();
+//         db.run(sql_urls, [
+//             ins_obj.id_research,
+//             ins_obj.data_id,
+//             ins_obj.url,
+//             ins_obj.description,
+//             ins_obj.price,
+//             ins_obj.location,
+//             ins_obj.extras,
+//             now
+//         ], (err, rows, bo) => {
+//             if (err) {
+//                 return resolve(err);
+//             }
+//             return resolve();
 
-        });
+//         });
 
-        // db.all("SELECT last_insert_rowid();", (err, rows) => {
-        //   if (err) {
-        //     return reject(err);
-        //   }
-        //   return resolve(rows);
-        // });
+//         // db.all("SELECT last_insert_rowid();", (err, rows) => {
+//         //   if (err) {
+//         //     return reject(err);
+//         //   }
+//         //   return resolve(rows);
+//         // });
 
-        //});
-    });
-}
+//         //});
+//     });
+// }
 
 function get_number_of_rows_inserted() {
+    return Promise.resolve(55);
+
+
     return new Promise((resolve, reject) => {
         db.all("select total_changes() as changes", (err, rows) => {
             if (err) {
@@ -572,51 +475,51 @@ function get_number_of_rows_inserted() {
 
 //******************************************* */
 
-function create_table_researches() {
-    return new Promise((resolve) => {
-        let sql = `CREATE TABLE IF NOT EXISTS researches (
-    id_research integer primary key,
-    url text,
-    name text
-   )`;
+// function create_table_researches() {
+//     return new Promise((resolve) => {
+//         let sql = `CREATE TABLE IF NOT EXISTS researches (
+//     id_research integer primary key,
+//     url text,
+//     name text
+//    )`;
 
-        db.run(sql, [], (err, rows) => {
-            if (err) {
-                throw err;
-            }
-            resolve();
-        });
-    });
-}
-function create_table_insertions() {
-    return new Promise((resolve) => {
+//         db.run(sql, [], (err, rows) => {
+//             if (err) {
+//                 throw err;
+//             }
+//             resolve();
+//         });
+//     });
+// }
+// function create_table_insertions() {
+//     return new Promise((resolve) => {
 
-        try {
-            db.serialize(function () {
-                let sql_urls = `CREATE TABLE IF NOT EXISTS insertions (
-    id integer PRIMARY KEY,
-    id_research integer not null, 
-    data_id text,
-    url text,
-    description text,
-    price text,
-    location text,
-    extras text,
-    updated_at	integer
-   )`;
+//         try {
+//             db.serialize(function () {
+//                 let sql_urls = `CREATE TABLE IF NOT EXISTS insertions (
+//     id integer PRIMARY KEY,
+//     id_research integer not null, 
+//     data_id text,
+//     url text,
+//     description text,
+//     price text,
+//     location text,
+//     extras text,
+//     updated_at	integer
+//    )`;
 
-                db.run(sql_urls);
-                db.run("CREATE UNIQUE INDEX IF NOT EXISTS index_data_id ON insertions(data_id)");
+//                 db.run(sql_urls);
+//                 db.run("CREATE UNIQUE INDEX IF NOT EXISTS index_data_id ON insertions(data_id)");
 
-                resolve();
+//                 resolve();
 
-            });
+//             });
 
-        } catch (err) {
-            log.error(err);
-        }
+//         } catch (err) {
+//             log.error(err);
+//         }
 
-    });
+//     });
 
 
-}
+// }
