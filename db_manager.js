@@ -1,14 +1,14 @@
 const { Client } = require('pg');
 const sqlite3 = require('sqlite3').verbose();
 
-const db = new Client({
-    connectionString: process.env.DATABASE_URL || "postgres://ruyplakbvjkdux:79516eb0766d30ca2ac0d07be1572f719118cafd1b4730021cfb35fea0e7ec30@ec2-54-163-240-54.compute-1.amazonaws.com:5432/d6fd4b5lqektn",
-    ssl: true,
-});
+var db = null;
+
 
 async function close() {
     //db.close();
-    return db.end();
+    await db.end();
+    db = null;
+    return ;
 }
 
 
@@ -25,6 +25,10 @@ async function close() {
 //     });
 // }
 async function create_db() {
+    db = new Client({
+        connectionString: process.env.DATABASE_URL || "postgres://ruyplakbvjkdux:79516eb0766d30ca2ac0d07be1572f719118cafd1b4730021cfb35fea0e7ec30@ec2-54-163-240-54.compute-1.amazonaws.com:5432/d6fd4b5lqektn",
+        ssl: true,
+    });
     return db.connect();
 }
 
