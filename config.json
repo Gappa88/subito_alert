@@ -1,5 +1,5 @@
 {
-    "insertions_interval_checker_seconds": 3600,
+    "insertions_interval_checker_seconds": 20,
     "researches": {
         "gappa88@gmail.com": [
             {

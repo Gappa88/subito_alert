@@ -61,7 +61,9 @@ startKeepAlive();
 
 
 
-subito.start(researches);
+//subito.start(researches);
 setInterval(function () {
-  subito.start(researches);
+  //subito.start(researches);
+console.log("VADO VADO VADO");
+
 }, 1000 * insertions_interval_checker_seconds);
