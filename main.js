@@ -59,11 +59,9 @@ function startKeepAlive() {
 
 startKeepAlive();
 
+console.log("attivo ogni: " + insertions_interval_checker_seconds);
 
-
-//subito.start(researches);
+subito.start(researches);
 setInterval(function () {
-  //subito.start(researches);
-console.log("VADO VADO VADO");
-
+  subito.start(researches);
 }, 1000 * insertions_interval_checker_seconds);
