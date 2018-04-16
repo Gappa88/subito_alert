@@ -50,7 +50,7 @@ module.exports.start = function (researchers_list) {
     }).then(() => {
 
         print_report();
-        
+
         log.info("Fine");
 
     }).catch(err => {
@@ -157,14 +157,16 @@ function print_report() {
 
             let report = (tables[k].inserts || "") + "<br />" + (tables[k].updates || "");
 
-            log.info("invio email a: " + k);
-            mail.send_mail(k, 'report', "", report).then(ret => {
-                log.info("mail inviata");
-            }).catch(err => {
-                console.error(err);
-                log.error("errore invio email: " + JSON.stringify(err));
-            });
-
+            let mails_splitted = k.split(",");
+            for (let m = 0; m < mails_splitted.length; ++m) {
+                log.info("invio email a: " + mails_splitted[m]);
+                mail.send_mail(mails_splitted[m], 'report', "", report).then(ret => {
+                    log.info("mail inviata");
+                }).catch(err => {
+                    console.error(err);
+                    log.error("errore invio email: " + JSON.stringify(err));
+                });
+            }
         }
     }
 
@@ -252,8 +254,8 @@ function main() {
 
             return Promise.all(options.map(crawl));
 
-        // }).then(ret => {
-        //     return get_number_of_rows_inserted();
+            // }).then(ret => {
+            //     return get_number_of_rows_inserted();
         }).then(n => {
             //log.info("numero modifiche: " + n[0].changes);
             return;

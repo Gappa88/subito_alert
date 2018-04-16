@@ -1,28 +1,11 @@
 {
     "insertions_interval_checker_seconds": 3600,
     "researches": {
-        "gappa88@gmail.com": [
-            {
-                "id": 1,
-                "name": "pignone",
-                "url": "https://www.subito.it/annunci-italia/vendita/moto-e-scooter/?bb=000051&bm=000787&mt=1&q=pignone&rs=2000&from=mysearches"
-            },
-            {
-                "id": 2,
-                "name": "villa",
-                "url": "https://www.subito.it/annunci-emilia-romagna/vendita/immobili/reggio-emilia/?q=villa"
-            },
+        "gappa88@gmail.com,francesco.solieri@gmail.com": [           
             {
                 "id":4,
                 "name": "ktm",
                 "url": "https://www.subito.it/annunci-emilia-romagna-vicino/vendita/usato/?&q=ktm%20690"
-            }
-        ],
-        "marco.gasparini@gmx.com": [
-            {
-                "id": 3,
-                "url": "https://www.subito.it/annunci-emilia-romagna/vendita/telefonia/modena/?q=iphone&qso=true",
-                "name": "iphone"
             }
         ]
     }
