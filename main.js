@@ -61,5 +61,5 @@ for (let r in researches) {
   setInterval(function () {    
     let scraper2 = new subito();
     scraper2.start(researches[r]);
-  }, researches[r].insertions_interval_checker_seconds);
+  }, researches[r].insertions_interval_checker_seconds * 1000);
 }
