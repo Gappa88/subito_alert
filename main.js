@@ -1,23 +1,20 @@
 var subito = require("./subito_scraper.js");
-
 const nconf = require('nconf');
 nconf.file("config.json");
 
 const researches = {};
-
 const res_tmp = nconf.get("researches");
 for (let k in res_tmp) {
   for (let i = 0; i < res_tmp[k].length; ++i) {
     if (!res_tmp[k][i].id) {
       throw new Error("problema configurazione!!!");
     }
-
     researches[res_tmp[k][i].id] = res_tmp[k][i];
     researches[res_tmp[k][i].id].recipient = k;
   }
 }
 
-const insertions_interval_checker_seconds = nconf.get("insertions_interval_checker_seconds");
+//const insertions_interval_checker_seconds = nconf.get("insertions_interval_checker_seconds");
 
 var express = require('express');
 var app = express();
@@ -27,14 +24,11 @@ app.listen(port, function () {
   console.log('Our app is running on http://localhost:' + port);
 });
 
-app.get('/', function(req, res) {
+app.get('/', function (req, res) {
   res.send('hello');
 });
 
-
-
 var http = require('http'); //importing http
-
 function startKeepAlive() {
   setInterval(function () {
     var options = {
@@ -56,12 +50,16 @@ function startKeepAlive() {
     });
   }, 20 * 60 * 1000); // load every 20 minutes
 }
-
 startKeepAlive();
 
-console.log("attivo ogni: " + insertions_interval_checker_seconds);
+//console.log("attivo ogni: " + insertions_interval_checker_seconds);
 
-subito.start(researches);
-setInterval(function () {
-  subito.start(researches);
-}, 1000 * insertions_interval_checker_seconds);
+
+for (let r in researches) {
+  let scraper = new subito();
+  scraper.start(researches[r]);
+  setInterval(function () {    
+    let scraper2 = new subito();
+    scraper2.start(researches[r]);
+  }, researches[r].insertions_interval_checker_seconds);
+}
