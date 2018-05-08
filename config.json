@@ -1,11 +1,27 @@
 {    
     "researches": {
-        "francesco.solieri@gmail.com": [           
+        "eeee": [           
             {
                 "id":5,
                 "insertions_interval_checker_seconds": 10800,
                 "name": "Husqvarna",
                 "url": "https://www.subito.it/annunci-emilia-romagna-vicino/vendita/usato/?&q=Husqvarna%20701"
+            }
+        ],
+        "www": [           
+            {
+                "id":1,   
+                "insertions_interval_checker_seconds": 21600,             
+                "name": "BMW",
+                "url": "https://www.subito.it/annunci-emilia-romagna/vendita/moto-e-scooter/?q=scrambler&qso=true&bb=000037"
+            }
+        ],
+        "aaaa": [
+            {
+                "id":2,   
+                "insertions_interval_checker_seconds": 21600,             
+                "name": "TRIUMPH",
+                "url": "https://www.subito.it/annunci-emilia-romagna/vendita/moto-e-scooter/?q=scrambler&qso=true&bb=000014"
             }
         ]
     }
