@@ -1,6 +1,28 @@
 var subito = require("./subito_scraper.js");
 const nconf = require('nconf');
+const { createLogger, format, transports } = require('winston');
+const { combine, timestamp, label, printf } = format;
+const myFormat = printf(info => {
+    return `${info.timestamp} ${info.level}: ${info.message}`;
+});
+const log = createLogger({
+  format: combine(
+      timestamp(),
+      myFormat
+  ),
+  transports: [
+      new transports.Console(),
+      new transports.File({
+          filename: 'scraping_subito.log',
+          level: 'info'
+      })]
+});
+
 nconf.file("config.json");
+
+const api = require("./api");
+api.set_log(log);
+api.startKeepAlive();
 
 const researches = {};
 const res_tmp = nconf.get("researches");
@@ -14,52 +36,11 @@ for (let k in res_tmp) {
   }
 }
 
-//const insertions_interval_checker_seconds = nconf.get("insertions_interval_checker_seconds");
-
-var express = require('express');
-var app = express();
-var port = process.env.PORT || 8080;
-
-app.listen(port, function () {
-  console.log('Our app is running on http://localhost:' + port);
-});
-
-app.get('/', function (req, res) {
-  res.send('hello');
-});
-
-var http = require('http'); //importing http
-function startKeepAlive() {
-  setInterval(function () {
-    var options = {
-      host: 'still-dusk-84428.herokuapp.com',
-      port: 80,
-      path: '/'
-    };
-    http.get(options, function (res) {
-      res.on('data', function (chunk) {
-        try {
-          // optional logging... disable after it's working
-          console.log("HEROKU RESPONSE: " + chunk);
-        } catch (err) {
-          console.log(err.message);
-        }
-      });
-    }).on('error', function (err) {
-      console.log("Error: " + err.message);
-    });
-  }, 20 * 60 * 1000); // load every 20 minutes
-}
-startKeepAlive();
-
-//console.log("attivo ogni: " + insertions_interval_checker_seconds);
-//prova
-
 for (let r in researches) {
-  let scraper = new subito();
+  let scraper = new subito(log);
   scraper.start(researches[r]);
   setInterval(function () {    
-    let scraper2 = new subito();
+    let scraper2 = new subito(log);
     scraper2.start(researches[r]);
   }, researches[r].insertions_interval_checker_seconds * 1000);
 }

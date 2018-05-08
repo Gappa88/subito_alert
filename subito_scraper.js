@@ -2,35 +2,19 @@
 const promiseUntil = require('promise-until');
 const rp = require('request-promise');
 const cheerio = require('cheerio');
-const { createLogger, format, transports } = require('winston');
-const { combine, timestamp, label, printf } = format;
-const myFormat = printf(info => {
-    return `${info.timestamp} ${info.level}: ${info.message}`;
-});
 var log = null;
 var db_manager_class = require("./db_manager");
 var mail = require('./send_mail.js');
 
 module.exports = class Scraper {
-    constructor() {
+    constructor(_log) {
         this.now = new Date().getTime();
         this.db_manager = new db_manager_class();
         this.url_parser = require('url');
         //this.mail = require('./send_mail.js');
 
-        log = createLogger({
-            format: combine(
-                timestamp(),
-                myFormat
-            ),
-            transports: [
-                new transports.Console(),
-                new transports.File({
-                    filename: 'scraping_subito.log',
-                    level: 'info'
-                })]
-        });
-
+        log = _log;
+        
         //this.promiseUntil = require('promise-until');
         this.researches = null;
         this.all_insertions_inserted = {};
