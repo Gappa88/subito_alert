@@ -24,7 +24,6 @@ module.exports = class Scraper {
     }
 
     async start(researchers_list) {
-
         this.researches = Object.assign({}, researchers_list);
         console.log("Start reasearch: " + this.researches.name);
 
@@ -39,7 +38,6 @@ module.exports = class Scraper {
         } catch (err) {
             console.log(err);
         }
-
     }
 
     print_report() {
@@ -172,7 +170,6 @@ module.exports = class Scraper {
         this.all_insertions_updated = null;
         this.all_insertions_updated = {};
     }
-
 
     //******************************************* */
     // controllo presenza tabelle

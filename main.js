@@ -36,11 +36,13 @@ for (let k in res_tmp) {
   }
 }
 
-for (let r in researches) {
-  let scraper = new subito(log);
-  scraper.start(researches[r]);
-  setInterval(function () {    
-    let scraper2 = new subito(log);
-    scraper2.start(researches[r]);
-  }, researches[r].insertions_interval_checker_seconds * 1000);
-}
+
+
+// for (let r in researches) {
+//   let scraper = new subito(log);
+//   scraper.start(researches[r]);
+//   setInterval(function () {    
+//     let scraper2 = new subito(log);
+//     scraper2.start(researches[r]);
+//   }, researches[r].insertions_interval_checker_seconds * 1000);
+// }
