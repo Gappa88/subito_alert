@@ -7,6 +7,7 @@ var db_manager_class = require("./db_manager");
 var mail = require('./send_mail.js');
 
 module.exports = class Scraper {
+
     constructor(_log) {
         this.now = new Date().getTime();
         this.db_manager = new db_manager_class();
@@ -14,30 +15,39 @@ module.exports = class Scraper {
         //this.mail = require('./send_mail.js');
 
         log = _log;
-        
+
         //this.promiseUntil = require('promise-until');
         this.researches = null;
         this.all_insertions_inserted = {};
         this.all_insertions_updated = {};
         this.db_conn = null;
-
     }
 
     async start(researchers_list) {
-        this.researches = Object.assign({}, researchers_list);
-        console.log("Start reasearch: " + this.researches.name);
+        this.researches = Object.assign({}, researchers_list);        
 
-        try {
-            await this.init();
-            await this.main();
-            await this.db_manager.close(this.db_conn);
-            this.db_conn = null;
-            this.print_report();
-            log.info("Fine");
-            console.log("Fine");
-        } catch (err) {
-            console.log(err);
+        while (true) {
+            try {
+                console.log(`Start reasearch: ${this.researches.name}`);
+                log.info(`Start reasearch: ${this.researches.name}`);
+                await this.init();
+                await this.main();
+                await this.db_manager.close(this.db_conn);
+                this.db_conn = null;
+                this.print_report();
+                log.info(`Fine reasearch: ${this.researches.name}`);
+                console.log(`Fine reasearch: ${this.researches.name}`);
+
+                await this.sleep(this.researches.insertions_interval_checker_seconds * 1);
+
+            } catch (err) {
+                console.log(err);
+            }
         }
+    }
+
+    async sleep(ms) {
+        return new Promise(r => { setTimeout(r, ms) });
     }
 
     print_report() {
@@ -133,19 +143,26 @@ module.exports = class Scraper {
                 tables[k].updates += "</table>";
             }
 
+            console.log(`ricerca: ${this.researches.name} => inseriti: ${Object.keys(inserts).length}`);
+            console.log(`ricerca: ${this.researches.name} => aggiornati: ${Object.keys(updates).length}`);
+            log.info(`ricerca: ${this.researches.name} => inseriti: ${Object.keys(inserts).length}`);
+            log.info(`ricerca: ${this.researches.name} => aggiornati: ${Object.keys(updates).length}`);
+
             for (let k in tables) {
 
                 let report = (tables[k].inserts || "") + "<br />" + (tables[k].updates || "");
 
-                let mails_splitted = k.split(",");
-                for (let m = 0; m < mails_splitted.length; ++m) {
-                    log.info("invio email a: " + mails_splitted[m]);
-                    mail.send_mail(mails_splitted[m], 'report', "", report).then(ret => {
-                        log.info("mail inviata");
-                    }).catch(err => {
-                        console.error(err);
-                        log.error("errore invio email: " + JSON.stringify(err));
-                    });
+                if (this.researches.send_email) {
+                    let mails_splitted = k.split(",");
+                    for (let m = 0; m < mails_splitted.length; ++m) {
+                        log.info("invio email a: " + mails_splitted[m]);
+                        mail.send_mail(mails_splitted[m], 'report', "", report).then(ret => {
+                            log.info("mail inviata");
+                        }).catch(err => {
+                            console.error(err);
+                            log.error("errore invio email: " + JSON.stringify(err));
+                        });
+                    }
                 }
             }
         }
@@ -184,13 +201,13 @@ module.exports = class Scraper {
     main() {
         let options = [];
         //for (let i in this.researches) {
-            // options.push({
-            //     research_id: i,
-            //     uri: this.researches[i].url,
-            //     transform: function (body) {
-            //         return cheerio.load(body);
-            //     }
-            // });
+        // options.push({
+        //     research_id: i,
+        //     uri: this.researches[i].url,
+        //     transform: function (body) {
+        //         return cheerio.load(body);
+        //     }
+        // });
         //}
         options.push({
             research_id: 0,
@@ -200,8 +217,8 @@ module.exports = class Scraper {
             }
         });
 
-        return Promise.all(options.map(o => { 
-            return rp(o); 
+        return Promise.all(options.map(o => {
+            return rp(o);
         }))
             .then(pages => {
                 for (let i = 0; i < pages.length; ++i) {
@@ -219,9 +236,9 @@ module.exports = class Scraper {
 
                 //return Promise.all(options.map(this.crawl));
                 return Promise.all(options.map(o => {
-                    return this.crawl(o, this.db_manager, this.db_conn, this.researches );
+                    return this.crawl(o, this.db_manager, this.db_conn, this.researches);
                 }));
-                
+
                 // }).then(ret => {
                 //     return get_number_of_rows_inserted();
             }).then(n => {
@@ -238,7 +255,7 @@ module.exports = class Scraper {
         return promiseUntil(() => {
 
             console.log("opt.number_page_processed: " + opt.number_page_processed);
-            return opt.number_page_processed >= opt.max_page_number;
+            return opt.number_page_processed > opt.max_page_number;
         }, () => {
 
             let n_opt = Object.assign({}, opt);

@@ -64,19 +64,28 @@ module.exports = class db_manager {
         if (db_ext && obj && obj.mail_recipients && obj.insertions_interval_checker_seconds && obj.name && obj.url) {
             let sql_urls = `insert into researches(mail_recipients, insertions_interval_checker_seconds, name, url) 
             values ($1::text, $2::bigint, $3::text, $4::text)`;
-            return db_ext.query(sql_urls, 
+            return db_ext.query(sql_urls,
                 [obj.mail_recipients, obj.insertions_interval_checker_seconds, obj.name, obj.url]);
         } else {
             return Promise.reject(new Error("[insert_research] Parameters error"));
         }
     }
 
-    get_research(db_ext, name) {
-        if (db_ext && name) {
-            let sql_urls = `select mail_recipients, insertions_interval_checker_seconds, name, url from researches where lower(name) = lower($1::text)`;
-            return db_ext.query(sql_urls, [name]);
+    get_research(db_ext, name, all) {
+        if (db_ext) {
+            let sql_urls;
+            if (all) {
+                sql_urls = `select id, mail_recipients, insertions_interval_checker_seconds, name, url from researches`;
+                return db_ext.query(sql_urls);
+            } else if (name) {
+                sql_urls = `select id, mail_recipients, insertions_interval_checker_seconds, name, url from researches where lower(name) = lower($1::text)`;
+                return db_ext.query(sql_urls, [name]);
+            } else {
+                return Promise.reject(new Error("[get_research] Parameters error"));
+            }
+
         } else {
-            return Promise.reject(new Error("[insert_research] Parameters error"));
+            return Promise.reject(new Error("[get_research] Parameters error"));
         }
     }
 

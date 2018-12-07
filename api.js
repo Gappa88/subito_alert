@@ -21,36 +21,52 @@ app.get('/', function (req, res) {
     res.send('hello');
 });
 
-app.get('/api/get_research', async function (req, res) {
+app.post('/api/get_research', get_research);
+
+async function get_research(req, res, internal) {
     try {
-        if (!req.query && !req.query.name) {
+
+        if(internal){
+            let db_conn = await db_manager.create_db();
+            let rese = await db_manager.get_research(db_conn, null, true);
+            await db_manager.close(db_conn);
+            return rese.rows;
+        }
+
+        if (!req.body && !req.body.name) {
             res.status(400).send(new Error("errore nei parametri"));
             return;
         }
         let db_conn = await db_manager.create_db();
-        let rese = await db_manager.get_research(db_conn, req.query.name);
+        let rese;
+        if(req.body.f){
+            rese = await db_manager.get_research(db_conn, null, true);
+        }else{
+            rese = await db_manager.get_research(db_conn, req.body.name);
+        }
+        
         await db_manager.close(db_conn);
         if (rese.rows)
             res.send(rese.rows);
         else
             res.send("nessuna ricerca presente");
     } catch (err) {
-        res.status(400).send(err);
+        res.status(400).send(err.message);
     }
-});
+}
 
 app.post('/api/insert_research', async function (req, res) {
     try {
-        if (Object.keys(res.body) < 4) {
+        if (Object.keys(req.body) < 4) {
             res.status(400).send(new Error("errore nei parametri"));
             return;
         }
         let db_conn = await db_manager.create_db();
-        await db_manager.insert_research(db_conn, res.body);
+        await db_manager.insert_research(db_conn, req.body);
         await db_manager.close(db_conn);
         res.send("ok");
     } catch (err) {
-        res.status(400).send(err);
+        res.status(400).send(err.message);
     }
 });
 
@@ -82,6 +98,7 @@ function set_log(_log) {
 }
 
 module.exports = {
-    startKeepAlive: startKeepAlive,
-    set_log: set_log
+    startKeepAlive,
+    set_log,
+    get_research
 }
