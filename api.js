@@ -44,7 +44,7 @@ async function get_research(req, res, internal) {
         }else{
             rese = await db_manager.get_research(db_conn, req.body.name);
         }
-        
+        //
         await db_manager.close(db_conn);
         if (rese.rows)
             res.send(rese.rows);
