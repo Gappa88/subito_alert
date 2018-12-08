@@ -1,4 +1,5 @@
-var subito = require("./subito_scraper.js");
+var subito = require("./subito_scraper");
+var motoit = require("./motoit_scraper");
 const nconf = require('nconf');
 const Bottleneck = require('bottleneck');
 const limiter = new Bottleneck({
@@ -51,7 +52,13 @@ const researches = {};
 
   for (let r in researches) {
 
-    (new subito(log)).start(researches[r]);
+    if (researches[r].url.indexOf(".subito.it") > -1 && researches[r].id == 3) {
+      (new subito(log)).start(researches[r]);
+    } else if (researches[r].url.indexOf(".moto.it") > -1) {
+     /// (new motoit(log)).start(researches[r]);
+    }
+
+    //await sleep(2000);
 
     // setInterval(function () {
     //   let scraper2 = new subito(log);
@@ -60,3 +67,7 @@ const researches = {};
   }
 
 })();
+
+async function sleep(ms) {
+  return new Promise(r => { setTimeout(r, ms) });
+}

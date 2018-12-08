@@ -24,7 +24,7 @@ module.exports = class Scraper {
     }
 
     async start(researchers_list) {
-        this.researches = Object.assign({}, researchers_list);        
+        this.researches = Object.assign({}, researchers_list);
 
         while (true) {
             try {
@@ -62,8 +62,8 @@ module.exports = class Scraper {
                 for (let l in this.all_insertions_inserted[i][k]) {
                     if (l == 'id_research') {
 
-                        //recipient = this.researches[this.all_insertions_inserted[i][k][l]].recipient;
-                        recipient = this.researches.recipient;
+                        //recipient = this.researches[this.all_insertions_inserted[i][k][l]].mail_recipients;
+                        recipient = this.researches.mail_recipients;
 
                         sub_insert += "<tr style='background-color:yellow;'><td>" + l + "</td>";
                         //sub_insert += "<td>" + this.researches[this.all_insertions_inserted[i][k][l]].name + "</td></tr>";
@@ -92,7 +92,7 @@ module.exports = class Scraper {
                     if (l == 'id_research') {
 
                         //recipient = this.researches[this.all_insertions_updated[i][k][l]].recipient;
-                        recipient = this.researches.recipient;
+                        recipient = this.researches.mail_recipients;
 
                         sub_updates += "<tr style='background-color:yellow;'><td>" + l + "</td>";
                         //sub_updates += "<td>" + this.researches[this.all_insertions_updated[i][k][l]].name + "</td></tr>";
@@ -255,7 +255,7 @@ module.exports = class Scraper {
         return promiseUntil(() => {
 
             console.log("opt.number_page_processed: " + opt.number_page_processed);
-            return opt.number_page_processed > opt.max_page_number;
+            return opt.number_page_processed >= opt.max_page_number;
         }, () => {
 
             let n_opt = Object.assign({}, opt);
