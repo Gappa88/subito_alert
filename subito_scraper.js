@@ -2,60 +2,52 @@
 const promiseUntil = require('promise-until');
 const rp = require('request-promise');
 const cheerio = require('cheerio');
-const { createLogger, format, transports } = require('winston');
-const { combine, timestamp, label, printf } = format;
-const myFormat = printf(info => {
-    return `${info.timestamp} ${info.level}: ${info.message}`;
-});
 var log = null;
 var db_manager_class = require("./db_manager");
 var mail = require('./send_mail.js');
 
 module.exports = class Scraper {
-    constructor() {
+
+    constructor(_log) {
         this.now = new Date().getTime();
         this.db_manager = new db_manager_class();
         this.url_parser = require('url');
         //this.mail = require('./send_mail.js');
 
-        log = createLogger({
-            format: combine(
-                timestamp(),
-                myFormat
-            ),
-            transports: [
-                new transports.Console(),
-                new transports.File({
-                    filename: 'scraping_subito.log',
-                    level: 'info'
-                })]
-        });
+        log = _log;
 
         //this.promiseUntil = require('promise-until');
         this.researches = null;
         this.all_insertions_inserted = {};
         this.all_insertions_updated = {};
         this.db_conn = null;
-
     }
 
     async start(researchers_list) {
-
         this.researches = Object.assign({}, researchers_list);
-        console.log("Start reasearch: " + this.researches.name);
 
-        try {
-            await this.init();
-            await this.main();
-            await this.db_manager.close(this.db_conn);
-            this.db_conn = null;
-            this.print_report();
-            log.info("Fine");
-            console.log("Fine");
-        } catch (err) {
-            console.log(err);
+        while (true) {
+            try {
+                console.log(`Start reasearch: ${this.researches.name}`);
+                log.info(`Start reasearch: ${this.researches.name}`);
+                await this.init();
+                await this.main();
+                await this.db_manager.close(this.db_conn);
+                this.db_conn = null;
+                this.print_report();
+                log.info(`Fine reasearch: ${this.researches.name}`);
+                console.log(`Fine reasearch: ${this.researches.name}`);
+
+                await this.sleep(this.researches.insertions_interval_checker_seconds * 1);
+
+            } catch (err) {
+                console.log(err);
+            }
         }
+    }
 
+    async sleep(ms) {
+        return new Promise(r => { setTimeout(r, ms) });
     }
 
     print_report() {
@@ -70,8 +62,8 @@ module.exports = class Scraper {
                 for (let l in this.all_insertions_inserted[i][k]) {
                     if (l == 'id_research') {
 
-                        //recipient = this.researches[this.all_insertions_inserted[i][k][l]].recipient;
-                        recipient = this.researches.recipient;
+                        //recipient = this.researches[this.all_insertions_inserted[i][k][l]].mail_recipients;
+                        recipient = this.researches.mail_recipients;
 
                         sub_insert += "<tr style='background-color:yellow;'><td>" + l + "</td>";
                         //sub_insert += "<td>" + this.researches[this.all_insertions_inserted[i][k][l]].name + "</td></tr>";
@@ -100,7 +92,7 @@ module.exports = class Scraper {
                     if (l == 'id_research') {
 
                         //recipient = this.researches[this.all_insertions_updated[i][k][l]].recipient;
-                        recipient = this.researches.recipient;
+                        recipient = this.researches.mail_recipients;
 
                         sub_updates += "<tr style='background-color:yellow;'><td>" + l + "</td>";
                         //sub_updates += "<td>" + this.researches[this.all_insertions_updated[i][k][l]].name + "</td></tr>";
@@ -151,19 +143,26 @@ module.exports = class Scraper {
                 tables[k].updates += "</table>";
             }
 
+            console.log(`ricerca: ${this.researches.name} => inseriti: ${Object.keys(inserts).length}`);
+            console.log(`ricerca: ${this.researches.name} => aggiornati: ${Object.keys(updates).length}`);
+            log.info(`ricerca: ${this.researches.name} => inseriti: ${Object.keys(inserts).length}`);
+            log.info(`ricerca: ${this.researches.name} => aggiornati: ${Object.keys(updates).length}`);
+
             for (let k in tables) {
 
                 let report = (tables[k].inserts || "") + "<br />" + (tables[k].updates || "");
 
-                let mails_splitted = k.split(",");
-                for (let m = 0; m < mails_splitted.length; ++m) {
-                    log.info("invio email a: " + mails_splitted[m]);
-                    mail.send_mail(mails_splitted[m], 'report', "", report).then(ret => {
-                        log.info("mail inviata");
-                    }).catch(err => {
-                        console.error(err);
-                        log.error("errore invio email: " + JSON.stringify(err));
-                    });
+                if (this.researches.send_email) {
+                    let mails_splitted = k.split(",");
+                    for (let m = 0; m < mails_splitted.length; ++m) {
+                        log.info("invio email a: " + mails_splitted[m]);
+                        mail.send_mail(mails_splitted[m], 'report', "", report).then(ret => {
+                            log.info("mail inviata");
+                        }).catch(err => {
+                            console.error(err);
+                            log.error("errore invio email: " + JSON.stringify(err));
+                        });
+                    }
                 }
             }
         }
@@ -189,7 +188,6 @@ module.exports = class Scraper {
         this.all_insertions_updated = {};
     }
 
-
     //******************************************* */
     // controllo presenza tabelle
 
@@ -203,13 +201,13 @@ module.exports = class Scraper {
     main() {
         let options = [];
         //for (let i in this.researches) {
-            // options.push({
-            //     research_id: i,
-            //     uri: this.researches[i].url,
-            //     transform: function (body) {
-            //         return cheerio.load(body);
-            //     }
-            // });
+        // options.push({
+        //     research_id: i,
+        //     uri: this.researches[i].url,
+        //     transform: function (body) {
+        //         return cheerio.load(body);
+        //     }
+        // });
         //}
         options.push({
             research_id: 0,
@@ -219,32 +217,28 @@ module.exports = class Scraper {
             }
         });
 
-        return Promise.all(options.map(o => { 
-            return rp(o); 
+        return Promise.all(options.map(o => {
+            return rp(o);
         }))
             .then(pages => {
-                for (let i = 0; i < pages.length; ++i) {
-                    options[i].max_page_number = 1;
-                    let $ = pages[i];
+                // for (let i = 0; i < pages.length; ++i) {
+                //     options[i].max_page_number = 1;
+                //     let $ = pages[i];
 
-                    let url = $("div.pagination_bottom_link").find("a").attr("href");
-                    if (url) {
-                        let url_parts = this.url_parser.parse(url, true);
-                        if (url_parts.query.o) {
-                            options[i].max_page_number = parseInt(url_parts.query.o);
-                        }
-                    }
-                }
+                //     let url = $("div.pagination_bottom_link").find("a").attr("href");
+                //     if (url) {
+                //         let url_parts = this.url_parser.parse(url, true);
+                //         if (url_parts.query.o) {
+                //             options[i].max_page_number = parseInt(url_parts.query.o);
+                //         }
+                //     }
+                // }
 
-                //return Promise.all(options.map(this.crawl));
                 return Promise.all(options.map(o => {
-                    return this.crawl(o, this.db_manager, this.db_conn, this.researches );
+                    return this.crawl(o, this.db_manager, this.db_conn, this.researches);
                 }));
-                
-                // }).then(ret => {
-                //     return get_number_of_rows_inserted();
+
             }).then(n => {
-                //log.info("numero modifiche: " + n[0].changes);
                 return;
             }).catch(err => {
                 throw err;
@@ -252,12 +246,12 @@ module.exports = class Scraper {
     }
 
     crawl(opt, db_manager, db_conn, researches) {
-        let n_insertions = 0, this_insertion = null;
+        let n_insertions = 0, this_insertion = null, gohead = false;
         opt.number_page_processed = 0;
         return promiseUntil(() => {
 
             console.log("opt.number_page_processed: " + opt.number_page_processed);
-            return opt.number_page_processed >= opt.max_page_number;
+            return gohead;
         }, () => {
 
             let n_opt = Object.assign({}, opt);
@@ -286,6 +280,8 @@ module.exports = class Scraper {
                 // devo ciclare la pagina, inserire le inserzioni nuove e modificare quelle già esistenti
                 let $ = this_insertion;
                 let new_ins_list = $("article.item_list.view_listing");
+
+                gohead = !(new_ins_list && new_ins_list.length && new_ins_list.length > 0);
 
                 // leggo tutte le inserzioni della pagina, estraggo le informazioni e le confronto con le precedenti
                 // per verificare che siano uguali. Se differiscono aggiorno.

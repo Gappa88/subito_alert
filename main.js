@@ -1,65 +1,76 @@
-var subito = require("./subito_scraper.js");
+var subito = require("./subito_scraper");
+var motoit = require("./motoit_scraper");
+var autoscout = require("./autoscout_scraper");
 const nconf = require('nconf');
+const Bottleneck = require('bottleneck');
+const limiter = new Bottleneck({
+  maxConcurrent: 1,
+  minTime: 5000
+});
+
+const { createLogger, format, transports } = require('winston');
+const { combine, timestamp, label, printf } = format;
+const myFormat = printf(info => {
+  return `${info.timestamp} ${info.level}: ${info.message}`;
+});
+const log = createLogger({
+  format: combine(
+    timestamp(),
+    myFormat
+  ),
+  transports: [
+    new transports.Console(),
+    new transports.File({
+      filename: 'scraping_subito.log',
+      level: 'info'
+    })]
+});
+
+
 nconf.file("config.json");
 
+const api = require("./api");
+api.set_log(log);
+api.startKeepAlive();
+
 const researches = {};
-const res_tmp = nconf.get("researches");
-for (let k in res_tmp) {
-  for (let i = 0; i < res_tmp[k].length; ++i) {
-    if (!res_tmp[k][i].id) {
-      throw new Error("problema configurazione!!!");
-    }
-    researches[res_tmp[k][i].id] = res_tmp[k][i];
-    researches[res_tmp[k][i].id].recipient = k;
+//const res_tmp = nconf.get("researches");
+
+(async () => {
+  const res_tmp = await api.get_research(null, null, true);
+  for (let k in res_tmp) {
+    //for (let i = 0; i < res_tmp[k].length; ++i) {
+    // if (!res_tmp[k][i].id) {
+    //   throw new Error("problema configurazione!!!");
+    // }
+    // researches[res_tmp[k][i].id] = res_tmp[k][i];
+    // researches[res_tmp[k][i].id].recipient = k;
+    researches[res_tmp[k].id] = res_tmp[k];
+    researches[res_tmp[k].id].send_email = nconf.get("email");
+    //researches[res_tmp[k].id].recipient = k;
+    //}
   }
-}
 
-//const insertions_interval_checker_seconds = nconf.get("insertions_interval_checker_seconds");
+  for (let r in researches) {
 
-var express = require('express');
-var app = express();
-var port = process.env.PORT || 8080;
+    if (researches[r].url.indexOf(".subito.it") > -1) {
+      (new subito(log)).start(researches[r]);
+    } else if (researches[r].url.indexOf(".moto.it") > -1) {
+      (new motoit(log)).start(researches[r]);
+    } else if (researches[r].url.indexOf(".autoscout24.it") > -1) {
+      (new autoscout(log)).start(researches[r]);
+    }
 
-app.listen(port, function () {
-  console.log('Our app is running on http://localhost:' + port);
-});
+    await sleep(2000);
 
-app.get('/', function (req, res) {
-  res.send('hello');
-});
+    // setInterval(function () {
+    //   let scraper2 = new subito(log);
+    //   scraper2.start(researches[r]);
+    // }, researches[r].insertions_interval_checker_seconds * 1000);
+  }
 
-var http = require('http'); //importing http
-function startKeepAlive() {
-  setInterval(function () {
-    var options = {
-      host: 'still-dusk-84428.herokuapp.com',
-      port: 80,
-      path: '/'
-    };
-    http.get(options, function (res) {
-      res.on('data', function (chunk) {
-        try {
-          // optional logging... disable after it's working
-          console.log("HEROKU RESPONSE: " + chunk);
-        } catch (err) {
-          console.log(err.message);
-        }
-      });
-    }).on('error', function (err) {
-      console.log("Error: " + err.message);
-    });
-  }, 20 * 60 * 1000); // load every 20 minutes
-}
-startKeepAlive();
+})();
 
-//console.log("attivo ogni: " + insertions_interval_checker_seconds);
-
-
-for (let r in researches) {
-  let scraper = new subito();
-  scraper.start(researches[r]);
-  setInterval(function () {    
-    let scraper2 = new subito();
-    scraper2.start(researches[r]);
-  }, researches[r].insertions_interval_checker_seconds * 1000);
+async function sleep(ms) {
+  return new Promise(r => { setTimeout(r, ms) });
 }

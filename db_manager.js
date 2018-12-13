@@ -5,9 +5,7 @@ const { Client } = require('pg');
 
 //var db = null;
 module.exports = class db_manager {
-    constructor() {
-    }
-
+    constructor() { }
 
     async close(db_ext) {
         //db.close();
@@ -16,19 +14,6 @@ module.exports = class db_manager {
         return;
     }
 
-
-    // controllo presenza tabelle
-    // function create_db() {
-    //     return new Promise((resolve, reject) => {
-    //         let db = new sqlite3.Database('./urls.db', (err) => {
-    //             if (err) {
-    //                 return reject(err);
-    //             }
-    //             console.log('Connected to the urls database.');
-    //             return resolve(db);
-    //         });
-    //     });
-    // }
     async create_db() {
         let db = new Client({
             connectionString: process.env.DATABASE_URL || "postgres://ruyplakbvjkdux:79516eb0766d30ca2ac0d07be1572f719118cafd1b4730021cfb35fea0e7ec30@ec2-54-163-240-54.compute-1.amazonaws.com:5432/d6fd4b5lqektn",
@@ -62,6 +47,48 @@ module.exports = class db_manager {
     //         }
     //     });
     // }
+
+    create_table_researches(db_ext) {
+        let sql_urls = `CREATE TABLE IF NOT EXISTS researches (
+            id serial PRIMARY KEY,
+            mail_recipients text,
+            insertions_interval_checker_seconds BIGINT,
+            name text,
+            url text
+           );`;
+
+        return db_ext.query(sql_urls);
+    }
+
+    insert_research(db_ext, obj) {
+        if (db_ext && obj && obj.mail_recipients && obj.insertions_interval_checker_seconds && obj.name && obj.url) {
+            let sql_urls = `insert into researches(mail_recipients, insertions_interval_checker_seconds, name, url) 
+            values ($1::text, $2::bigint, $3::text, $4::text)`;
+            return db_ext.query(sql_urls,
+                [obj.mail_recipients, obj.insertions_interval_checker_seconds, obj.name, obj.url]);
+        } else {
+            return Promise.reject(new Error("[insert_research] Parameters error"));
+        }
+    }
+
+    get_research(db_ext, name, all) {
+        if (db_ext) {
+            let sql_urls;
+            if (all) {
+                sql_urls = `select id, mail_recipients, insertions_interval_checker_seconds, name, url from researches`;
+                return db_ext.query(sql_urls);
+            } else if (name) {
+                sql_urls = `select id, mail_recipients, insertions_interval_checker_seconds, name, url from researches where lower(name) = lower($1::text)`;
+                return db_ext.query(sql_urls, [name]);
+            } else {
+                return Promise.reject(new Error("[get_research] Parameters error"));
+            }
+
+        } else {
+            return Promise.reject(new Error("[get_research] Parameters error"));
+        }
+    }
+
     create_table_insertions(db_ext) {
         let sql_urls = `CREATE TABLE IF NOT EXISTS insertions (
         id serial PRIMARY KEY,
@@ -125,7 +152,7 @@ module.exports = class db_manager {
     async insert_insertion_or_update(db_ext, ins_obj) {
         let sql_urls = `INSERT into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
     values($1,$2,$3::text,$4::text,$5::text,$6::text,$7::text,$8)
-    on conflict(data_id)
+    on conflict(url)
     DO UPDATE SET 
     url = $3::text, 
     description = $4::text, 
@@ -133,7 +160,7 @@ module.exports = class db_manager {
     location = $6::text,
     extras = $7::text,
     updated_at = $8
-    where insertions.data_id = $2
+    where insertions.url = $3
     `;
 
         //try {
