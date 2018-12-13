@@ -221,28 +221,24 @@ module.exports = class Scraper {
             return rp(o);
         }))
             .then(pages => {
-                for (let i = 0; i < pages.length; ++i) {
-                    options[i].max_page_number = 1;
-                    let $ = pages[i];
+                // for (let i = 0; i < pages.length; ++i) {
+                //     options[i].max_page_number = 1;
+                //     let $ = pages[i];
 
-                    let url = $("div.pagination_bottom_link").find("a").attr("href");
-                    if (url) {
-                        let url_parts = this.url_parser.parse(url, true);
-                        if (url_parts.query.o) {
-                            options[i].max_page_number = parseInt(url_parts.query.o);
-                        }
-                    }
-                }
+                //     let url = $("div.pagination_bottom_link").find("a").attr("href");
+                //     if (url) {
+                //         let url_parts = this.url_parser.parse(url, true);
+                //         if (url_parts.query.o) {
+                //             options[i].max_page_number = parseInt(url_parts.query.o);
+                //         }
+                //     }
+                // }
 
-                //return Promise.all(options.map(this.crawl));
                 return Promise.all(options.map(o => {
                     return this.crawl(o, this.db_manager, this.db_conn, this.researches);
                 }));
 
-                // }).then(ret => {
-                //     return get_number_of_rows_inserted();
             }).then(n => {
-                //log.info("numero modifiche: " + n[0].changes);
                 return;
             }).catch(err => {
                 throw err;
@@ -250,12 +246,12 @@ module.exports = class Scraper {
     }
 
     crawl(opt, db_manager, db_conn, researches) {
-        let n_insertions = 0, this_insertion = null;
+        let n_insertions = 0, this_insertion = null, gohead = false;
         opt.number_page_processed = 0;
         return promiseUntil(() => {
 
             console.log("opt.number_page_processed: " + opt.number_page_processed);
-            return opt.number_page_processed >= opt.max_page_number;
+            return gohead;
         }, () => {
 
             let n_opt = Object.assign({}, opt);
@@ -284,6 +280,8 @@ module.exports = class Scraper {
                 // devo ciclare la pagina, inserire le inserzioni nuove e modificare quelle già esistenti
                 let $ = this_insertion;
                 let new_ins_list = $("article.item_list.view_listing");
+
+                gohead = !(new_ins_list && new_ins_list.length && new_ins_list.length > 0);
 
                 // leggo tutte le inserzioni della pagina, estraggo le informazioni e le confronto con le precedenti
                 // per verificare che siano uguali. Se differiscono aggiorno.

@@ -152,7 +152,7 @@ module.exports = class db_manager {
     async insert_insertion_or_update(db_ext, ins_obj) {
         let sql_urls = `INSERT into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
     values($1,$2,$3::text,$4::text,$5::text,$6::text,$7::text,$8)
-    on conflict(data_id)
+    on conflict(url)
     DO UPDATE SET 
     url = $3::text, 
     description = $4::text, 
@@ -160,7 +160,7 @@ module.exports = class db_manager {
     location = $6::text,
     extras = $7::text,
     updated_at = $8
-    where insertions.data_id = $2
+    where insertions.url = $3
     `;
 
         //try {
