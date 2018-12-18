@@ -101,7 +101,8 @@ module.exports = class db_manager {
         extras text,
         updated_at bigint
        ); 
-       CREATE UNIQUE INDEX IF NOT EXISTS index_data_id ON insertions(data_id)`;
+       CREATE UNIQUE INDEX IF NOT EXISTS index_data_id ON insertions(data_id);
+       CREATE UNIQUE INDEX IF NOT EXISTS url_index ON insertions(url)`;
 
         return db_ext.query(sql_urls);
     }
@@ -149,10 +150,10 @@ module.exports = class db_manager {
     //         });
     //     });
     // }
-    async insert_insertion_or_update(db_ext, ins_obj) {
+    async insert_insertion_or_update(db_ext, ins_obj, index_part = 'url') {
         let sql_urls = `INSERT into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
     values($1,$2,$3::text,$4::text,$5::text,$6::text,$7::text,$8)
-    on conflict(url)
+    on conflict(`+ index_part + `)
     DO UPDATE SET 
     url = $3::text, 
     description = $4::text, 
@@ -160,7 +161,7 @@ module.exports = class db_manager {
     location = $6::text,
     extras = $7::text,
     updated_at = $8
-    where insertions.url = $3
+    where insertions.`+ index_part + ` = $3
     `;
 
         //try {

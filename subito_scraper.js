@@ -25,11 +25,11 @@ module.exports = class Scraper {
 
     async start(researchers_list) {
         this.researches = Object.assign({}, researchers_list);
-        await this.init();        
+        await this.init();
         while (true) {
             try {
                 console.log(`Start reasearch: ${this.researches.name}`);
-                log.info(`Start reasearch: ${this.researches.name}`);                
+                log.info(`Start reasearch: ${this.researches.name}`);
                 await this.main();
                 await this.db_manager.close(this.db_conn);
                 this.db_conn = null;
@@ -336,7 +336,7 @@ module.exports = class Scraper {
                         if (!insert) {
 
                             this.all_insertions_inserted[opt.research_id].push(ins_obj);
-                            promise_array.push(db_manager.insert_insertion_or_update(db_conn, ins_obj));
+                            promise_array.push(db_manager.insert_insertion_or_update(db_conn, ins_obj, 'data_id'));
 
                         } else if (insert && (
                             insert.url != url ||
@@ -345,7 +345,7 @@ module.exports = class Scraper {
                             insert.location != location
                         )) {
                             this.all_insertions_updated[opt.research_id].push(ins_obj);
-                            promise_array.push(db_manager.insert_insertion_or_update(db_conn, ins_obj));
+                            promise_array.push(db_manager.insert_insertion_or_update(db_conn, ins_obj, 'data_id'));
                         }
                     }
                 });
