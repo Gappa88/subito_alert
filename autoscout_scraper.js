@@ -22,12 +22,11 @@ module.exports = class MotoScraper {
 
     async start(researchers_list) {
         this.researches = Object.assign({}, researchers_list);
-
+        await this.init();
         while (true) {
             try {
                 console.log(`Start reasearch: ${this.researches.name}`);
-                log.info(`Start reasearch: ${this.researches.name}`);
-                await this.init();
+                log.info(`Start reasearch: ${this.researches.name}`);                
                 await this.main();
                 await this.db_manager.close(this.db_conn);
                 this.db_conn = null;
