@@ -21,37 +21,44 @@ app.get('/', function (req, res) {
     res.send('hello');
 });
 
-app.post('/api/get_research', get_research);
+app.get('/api/get_research', async (req, res) => {
+    try {
+        let result = await get_research();
+        res.send(result);
+    } catch (err) {
+        res.status(400).send(err.message);
+    }
+});
 
-async function get_research(req, res, internal) {
+async function get_research(internal = false) {
     try {
 
-        if(internal){
+        if (internal) {
             let db_conn = await db_manager.create_db();
             let rese = await db_manager.get_research(db_conn, null, true);
             await db_manager.close(db_conn);
             return rese.rows;
         }
 
-        if (!req.body && !req.body.name) {
-            res.status(400).send(new Error("errore nei parametri"));
-            return;
-        }
+        // if (!req.body && !req.body.name) {
+        //     res.status(400).send(new Error("errore nei parametri"));
+        //     return;
+        // }
         let db_conn = await db_manager.create_db();
         let rese;
-        if(req.body.f){
-            rese = await db_manager.get_research(db_conn, null, true);
-        }else{
-            rese = await db_manager.get_research(db_conn, req.body.name);
-        }
-        //
+        //if (req.body.f) {
+        rese = await db_manager.get_research(db_conn, null, true);
+        // } else {
+        //     rese = await db_manager.get_research(db_conn, req.body.name);
+        // }
+
         await db_manager.close(db_conn);
         if (rese.rows)
-            res.send(rese.rows);
+            return rese.rows;
         else
-            res.send("nessuna ricerca presente");
+            return "nessuna ricerca presente";
     } catch (err) {
-        res.status(400).send(err.message);
+        throw err;
     }
 }
 

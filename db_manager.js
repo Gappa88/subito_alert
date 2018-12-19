@@ -127,7 +127,6 @@ module.exports = class db_manager {
         return rows.rows;
     }
 
-
     // function insert_insertion_or_update(ins_obj) {
     //     return new Promise((resolve, reject) => {        
     //         let sql_urls = `INSERT OR REPLACE into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
@@ -150,6 +149,7 @@ module.exports = class db_manager {
     //         });
     //     });
     // }
+
     async insert_insertion_or_update(db_ext, ins_obj, index_part = 'url') {
         let sql_urls = `INSERT into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
     values($1,$2,$3::text,$4::text,$5::text,$6::text,$7::text,$8)
@@ -161,11 +161,8 @@ module.exports = class db_manager {
     location = $6::text,
     extras = $7::text,
     updated_at = $8
-    where insertions.`+ index_part + ` = $3
-    `;
+    where insertions.`+ index_part + ` = $3;`;
 
-        //try {
-        //let aa = await
         return db_ext.query(sql_urls, [
             ins_obj.id_research,
             ins_obj.data_id,
@@ -176,11 +173,6 @@ module.exports = class db_manager {
             ins_obj.extras,
             ins_obj.updated_at
         ]);
-        // } catch (err) {
-        //     console.log(err);
-        //     console.log(ins_obj);
-        //     console.log(sql_urls);
-        // }
     }
 
     // module.exports = {
