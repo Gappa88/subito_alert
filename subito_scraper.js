@@ -31,8 +31,6 @@ module.exports = class Scraper {
                 console.log(`Start reasearch: ${this.researches.name}`);
                 log.info(`Start reasearch: ${this.researches.name}`);
                 await this.main();
-                await this.db_manager.close(this.db_conn);
-                this.db_conn = null;
                 this.print_report();
                 log.info(`Fine reasearch: ${this.researches.name}`);
                 console.log(`Fine reasearch: ${this.researches.name}`);
@@ -43,6 +41,8 @@ module.exports = class Scraper {
                 console.log(err);
             }
         }
+        await this.db_manager.close(this.db_conn);
+        this.db_conn = null;
     }
 
     async sleep(ms) {

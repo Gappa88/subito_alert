@@ -26,11 +26,9 @@ module.exports = class MotoScraper {
         while (true) {
             try {
                 console.log(`Start reasearch: ${this.researches.name}`);
-                log.info(`Start reasearch: ${this.researches.name}`);                
+                log.info(`Start reasearch: ${this.researches.name}`);
                 await this.main();
                 await this.db_manager.close(this.db_conn);
-                this.db_conn = null;
-                this.print_report();
                 log.info(`Fine reasearch: ${this.researches.name}`);
                 console.log(`Fine reasearch: ${this.researches.name}`);
 
@@ -40,6 +38,8 @@ module.exports = class MotoScraper {
                 console.log(err);
             }
         }
+        this.db_conn = null;
+        this.print_report();
     }
 
     async sleep(ms) {
@@ -57,7 +57,7 @@ module.exports = class MotoScraper {
     //******************************************* */
 
     main() {
-        let options = [];        
+        let options = [];
         options.push({
             research_id: 0,
             uri: this.researches.url,
@@ -102,7 +102,7 @@ module.exports = class MotoScraper {
         let stop = false;
         let this_insertion = null;
         opt.number_page_processed = 0;
-        
+
         return promiseUntil(() => {
 
             console.log("opt.number_page_processed: " + opt.number_page_processed);
@@ -146,11 +146,11 @@ module.exports = class MotoScraper {
                 // leggo tutte le inserzioni della pagina, estraggo le informazioni e le confronto con le precedenti
                 // per verificare che siano uguali. Se differiscono aggiorno.
                 new_ins_list.map((idx, v) => {
-                    
+
                     let $ = cheerio.load(v);
                     let ass = $(".cldt-summary-titles > a");
                     //if(!ass || as.length == 0) continue;                    
-                    let url = "https://www.autoscout24.it" + ass[0].attribs.href ;
+                    let url = "https://www.autoscout24.it" + ass[0].attribs.href;
                     let description = $(".cldt-summary-title").text().trim();
                     let price = $("span.cldt-price").text().trim().replace("-", "").replace(",", "");
                     let location = $("span.cldt-summary-seller-contact-zip-city").text().trim();
