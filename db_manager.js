@@ -151,9 +151,15 @@ module.exports = class db_manager {
     // }
 
     async insert_insertion_or_update(db_ext, ins_obj, index_part = 'url') {
+
+        let argument_idx = "$3";
+        if (index_part == 'data_id') {
+            argument_idx = "$2";
+        }
+
         let sql_urls = `INSERT into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
     values($1,$2,$3::text,$4::text,$5::text,$6::text,$7::text,$8)
-    on conflict(`+ index_part + `)
+    on conflict(${index_part})
     DO UPDATE SET 
     url = $3::text, 
     description = $4::text, 
@@ -161,7 +167,7 @@ module.exports = class db_manager {
     location = $6::text,
     extras = $7::text,
     updated_at = $8
-    where insertions.`+ index_part + ` = $3;`;
+    where insertions.${index_part} = ${argument_idx};`;
 
         return db_ext.query(sql_urls, [
             ins_obj.id_research,
