@@ -3,13 +3,15 @@ const promiseUntil = require('promise-until');
 const rp = require('request-promise');
 const cheerio = require('cheerio');
 var log = null;
-var db_manager_class = require("./db_manager");
+//var db_manager_class = require("./db_manager");
 var mail = require('./send_mail.js');
 
 module.exports = class MotoScraper {
-    constructor(_log) {
+    constructor(_log, db_m, db) {
         this.now = new Date().getTime();
-        this.db_manager = new db_manager_class();
+        //this.db_manager = new db_manager_class();
+        this.db_manager = db_m;
+        this.db_conn = db;
         this.url_parser = require('url');
 
         log = _log;
@@ -17,18 +19,18 @@ module.exports = class MotoScraper {
         this.researches = null;
         this.all_insertions_inserted = {};
         this.all_insertions_updated = {};
-        this.db_conn = null;
+        //this.db_conn = null;
     }
 
     async start(researchers_list) {
         this.researches = Object.assign({}, researchers_list);
-        await this.init();
+        //await this.init();
         while (true) {
             try {
                 console.log(`Start reasearch: ${this.researches.name}`);
                 log.info(`Start reasearch: ${this.researches.name}`);
                 await this.main();
-                await this.db_manager.close(this.db_conn);
+                this.print_report();
                 log.info(`Fine reasearch: ${this.researches.name}`);
                 console.log(`Fine reasearch: ${this.researches.name}`);
 
@@ -38,8 +40,8 @@ module.exports = class MotoScraper {
                 console.log(err);
             }
         }
-        this.db_conn = null;
-        this.print_report();
+        await this.db_manager.close(this.db_conn); 
+        this.db_conn = null;               
     }
 
     async sleep(ms) {
@@ -49,10 +51,10 @@ module.exports = class MotoScraper {
     //******************************************* */
     // controllo presenza tabelle
 
-    async init() {
-        this.db_conn = await this.db_manager.create_db();
-        return this.db_manager.create_table_insertions(this.db_conn);
-    }
+    // async init() {
+    //     this.db_conn = await this.db_manager.create_db();
+    //     return this.db_manager.create_table_insertions(this.db_conn);
+    // }
 
     //******************************************* */
 
@@ -81,7 +83,7 @@ module.exports = class MotoScraper {
 
                 return options.reduce((promise, o, idx) => {
                     return promise.then(a => {
-                        console.log(`eseguo chunck n. ${idx}`);
+                        console.log(`eseguo chunk n. ${idx}`);
                         return this.crawl(o, this.db_manager, this.db_conn, this.researches);
                     }).catch(console.error);
                 }, Promise.resolve());

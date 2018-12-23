@@ -3,6 +3,7 @@ var motoit = require("./motoit_scraper");
 var autoscout = require("./autoscout_scraper");
 const nconf = require('nconf');
 const Bottleneck = require('bottleneck');
+var db_manager_class = require("./db_manager");
 const limiter = new Bottleneck({
   maxConcurrent: 1,
   minTime: 5000
@@ -34,9 +35,16 @@ api.set_log(log);
 api.startKeepAlive();
 
 const researches = {};
+var db_manager = new db_manager_class();
+
 //const res_tmp = nconf.get("researches");
 
+let db;
 (async () => {
+
+  db = await db_manager.create_db();
+  db_manager.create_table_insertions(db);
+
   const res_tmp = await api.get_research(true);
   for (let k in res_tmp) {
     //for (let i = 0; i < res_tmp[k].length; ++i) {
@@ -54,11 +62,11 @@ const researches = {};
   for (let r in researches) {
 
     if (researches[r].url.indexOf(".subito.it") > -1) {
-      (new subito(log)).start(researches[r]);
+      (new subito(log,  db_manager, db)).start(researches[r]);
     } else if (researches[r].url.indexOf(".moto.it") > -1) {
-      (new motoit(log)).start(researches[r]);
+      (new motoit(log, db_manager, db)).start(researches[r]);
     } else if (researches[r].url.indexOf(".autoscout24.it") > -1) {
-      (new autoscout(log)).start(researches[r]);
+      (new autoscout(log, db_manager, db)).start(researches[r]);
     }
 
     await sleep(2000);

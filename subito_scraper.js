@@ -3,29 +3,29 @@ const promiseUntil = require('promise-until');
 const rp = require('request-promise');
 const cheerio = require('cheerio');
 var log = null;
-var db_manager_class = require("./db_manager");
+//var db_manager_class = require("./db_manager");
 var mail = require('./send_mail.js');
 
 module.exports = class Scraper {
 
-    constructor(_log) {
+    constructor(_log, db_m, db) {
         this.now = new Date().getTime();
-        this.db_manager = new db_manager_class();
+        //this.db_manager = new db_manager_class();
+        this.db_manager = db_m;
+        this.db_conn = db;
         this.url_parser = require('url');
-        //this.mail = require('./send_mail.js');
 
         log = _log;
 
-        //this.promiseUntil = require('promise-until');
         this.researches = null;
         this.all_insertions_inserted = {};
         this.all_insertions_updated = {};
-        this.db_conn = null;
+        //this.db_conn = null;
     }
 
     async start(researchers_list) {
         this.researches = Object.assign({}, researchers_list);
-        await this.init();
+        //await this.init();
         while (true) {
             try {
                 console.log(`Start reasearch: ${this.researches.name}`);
@@ -190,10 +190,10 @@ module.exports = class Scraper {
     //******************************************* */
     // controllo presenza tabelle
 
-    async init() {
-        this.db_conn = await this.db_manager.create_db();
-        return this.db_manager.create_table_insertions(this.db_conn);
-    }
+    // async init() {
+    //     this.db_conn = await this.db_manager.create_db();
+    //     return this.db_manager.create_table_insertions(this.db_conn);
+    // }
 
     //******************************************* */
 
