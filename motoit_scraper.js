@@ -193,6 +193,7 @@ module.exports = class MotoScraper {
                         for (; j < iMax; j++) {
                             if (stored_insertions[j].url == url) {
                                 insert = stored_insertions[j];
+                                stored_insertions[j].done = true;
                                 break;
                             }
                         }
@@ -213,6 +214,13 @@ module.exports = class MotoScraper {
                         }
                     }
                 });
+
+                let j = 0; const iMax = stored_insertions.length;
+                for (; j < iMax; j++) {
+                    if (!stored_insertions[j].done) {
+                        promise_array.push(db_manager.delete_insertion_by_id(db_conn, stored_insertions[j].id));
+                    }
+                }
 
                 return Promise.all(promise_array);
 

@@ -268,7 +268,7 @@ module.exports = class Scraper {
 
                 this_insertion = $;
 
-                // ottenfo dal db la lista delle inserzioni salvate in precedenza
+                // ottengo dal db la lista delle inserzioni salvate in precedenza
                 //return this.db_manager.get_insertions_by_research_id(db_conn, researches[opt.research_id].id);
                 return db_manager.get_insertions_by_research_id(db_conn, researches.id);
 
@@ -329,6 +329,7 @@ module.exports = class Scraper {
                         for (; j < iMax; j++) {
                             if (stored_insertions[j].data_id == data_id) {
                                 insert = stored_insertions[j];
+                                stored_insertions[j].done = true;
                                 break;
                             }
                         }
@@ -349,6 +350,13 @@ module.exports = class Scraper {
                         }
                     }
                 });
+
+                let j = 0; const iMax = stored_insertions.length;
+                for (; j < iMax; j++) {
+                    if (!stored_insertions[j].done) {
+                        promise_array.push(db_manager.delete_insertion_by_id(db_conn, stored_insertions[j].id));
+                    }
+                }
 
                 return Promise.all(promise_array);
 

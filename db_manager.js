@@ -127,6 +127,11 @@ module.exports = class db_manager {
         return rows.rows;
     }
 
+    async delete_insertion_by_id(db_ext, id) {
+        let sql_urls = `delete from insertions where id = ` + id;
+        return await db_ext.query(sql_urls);        
+    }
+
     // function insert_insertion_or_update(ins_obj) {
     //     return new Promise((resolve, reject) => {        
     //         let sql_urls = `INSERT OR REPLACE into insertions (id_research, data_id, url, description, price, location, extras, updated_at)
